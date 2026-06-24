@@ -25,8 +25,10 @@ let package = Package(
         .package(url: "https://github.com/ml-explore/mlx-swift.git", from: "0.31.3"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.0"),
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.1.6"),
-        // MLXToolKit contract (imageInpaint @ 1.8.0). Pinned to the revision that introduced it.
-        .package(url: "https://github.com/xocialize/mlx-engine-swift.git", revision: "8cd0033"),
+        // MLXToolKit contract (imageInpaint @ 1.8.0). Use the released tag — 0.10.0 supersets 1.8.0.
+        // A `revision:` pin can't be reconciled with the `from: "0.10.0"` version range the sibling
+        // wrappers use, which jams a consuming app's graph (APP-VALIDATION BRIDGE-026).
+        .package(url: "https://github.com/xocialize/mlx-engine-swift", from: "0.10.0"),
     ],
     targets: [
         .target(name: "LaMa", dependencies: mlxCore, path: "Sources/LaMa",
