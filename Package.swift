@@ -18,7 +18,7 @@ let package = Package(
         .library(name: "LaMa", targets: ["LaMa"]),         // FFC quality tier (core)
         .library(name: "MIGAN", targets: ["MIGAN"]),        // mobile-GAN fast tier (core)
         .library(name: "MLXInpaint", targets: ["MLXInpaint"]),  // engine-consumable ModelPackage
-        .executable(name: "lama-smoke", targets: ["Smoke"]),
+        .executable(name: "lama-smoke", targets: ["LaMaSmoke"]),
         .executable(name: "migan-smoke", targets: ["MIGANSmoke"]),
     ],
     dependencies: [
@@ -45,7 +45,7 @@ let package = Package(
             ],
             path: "Sources/MLXInpaint"),
         .executableTarget(
-            name: "Smoke",
+            name: "LaMaSmoke",
             dependencies: ["LaMa", .product(name: "ArgumentParser", package: "swift-argument-parser")],
             path: "Sources/Smoke", swiftSettings: [.swiftLanguageMode(.v5)]),
         .executableTarget(
