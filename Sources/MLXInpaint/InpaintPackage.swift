@@ -20,7 +20,7 @@ public final class InpaintPackage: ModelPackage {
             // LaMa Apache-2.0 + MI-GAN MIT (both permissive); port code MIT. Declare the more-restrictive
             // permissive layer (Apache) for the weight gate — both pass C7. (NOTICE records both.)
             license: LicenseDeclaration(weightLicense: .apache2, portCodeLicense: .mit),
-            provenance: Provenance(sourceRepo: "mlx-community/LaMa-fp16", revision: "main", tier: 2),
+            provenance: Provenance(sourceRepo: "mlx-community/LaMa-bf16", revision: "main", tier: 2),
             requirements: RequirementsManifest(
                 // Measured (M-Max): LaMa erase peak ~2.8 GB fp32 @880²; MI-GAN fixed 512² is lighter.
                 // Activation-dominated, both consumer-friendly → one fp16 envelope covers both modes.
@@ -70,12 +70,13 @@ public final class InpaintPackage: ModelPackage {
 
     private func buildLaMa() async throws -> LaMaInpainter {
         let url = try await weightsURL(configuration.lamaWeightsURL, configuration.lamaRepo)
-        return try LaMaInpainter.fromPretrained(url.path, dtype: Self.dtype(configuration.quant))
+        // LaMa MUST run at bf16+ — its FFC bottleneck activations (~1e3) collapse under fp16 (mean err 0.55).
+        return try LaMaInpainter.fromPretrained(url.path, dtype: .bfloat16)
     }
     private func buildMIGAN() async throws -> MIGANInpainter {
         let url = try await weightsURL(configuration.miganWeightsURL, configuration.miganRepo)
-        return try MIGANInpainter.fromPretrained(url.path, resolution: configuration.miganResolution,
-                                                 dtype: Self.dtype(configuration.quant))
+        // MI-GAN is well-scaled → fp16 is accurate (mean 3e-4) and the smallest footprint.
+        return try MIGANInpainter.fromPretrained(url.path, resolution: configuration.miganResolution, dtype: .float16)
     }
 
     private func weightsURL(_ override: URL?, _ repo: String) async throws -> URL {

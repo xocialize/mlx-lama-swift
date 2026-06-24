@@ -31,7 +31,7 @@ architecture ports (no MLX donors). See ERASE-PLAN.md (Forge side).
 |---|---|
 | **imageInpaint contract** | MLXToolKit 1.8.0 (`8cd0033`): `Capability.imageInpaint` + `Inpaint.swift` (Request **image+mask** / Response / Contract; best/fast modes) — the contract's first two-input surface |
 | **MLXInpaint ModelPackage** | `Sources/MLXInpaint/` — one package, `best`→LaMa / `fast`→MI-GAN; Apache/MIT gate; fp16 4.5 GB footprint; builds against pinned contract ✅ |
-| **Published weights** | `mlx-community/{LaMa-fp16, MI-GAN-512-places2-fp16, MI-GAN-256-places2-fp16, MI-GAN-256-ffhq-fp16}` + "Inpainting (MLX)" Collection ✅ |
+| **Published weights** | `mlx-community/{LaMa-bf16, MI-GAN-512-places2-fp16, MI-GAN-256-places2-fp16, MI-GAN-256-ffhq-fp16}` + "Inpainting (MLX)" Collection ✅ |
 | **Published code** | `github.com/xocialize/mlx-lama-swift` (see tag) ✅ |
 
 ## ▢ REMAINING → Forge agent

@@ -17,7 +17,7 @@ The Swift/MLX ports (`Sources/{LaMa,MIGAN,MLXInpaint}`) are original to this rep
 licensed MIT (see LICENSE). The LaMa architecture + weights remain Apache-2.0; MI-GAN MIT.
 
 Converted MLX weights (fp16) are published to Hugging Face mlx-community:
-  - mlx-community/LaMa-fp16                  (Apache-2.0)
+  - mlx-community/LaMa-bf16                  (Apache-2.0)
   - mlx-community/MI-GAN-512-places2-fp16    (MIT)
   - mlx-community/MI-GAN-256-places2-fp16    (MIT)
   - mlx-community/MI-GAN-256-ffhq-fp16       (MIT)
