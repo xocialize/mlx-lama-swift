@@ -1,0 +1,11 @@
+.build/
+.swiftpm/
+oracle/.venv
+oracle/weights/
+oracle/goldens/
+oracle/publish/
+oracle/migan/
+oracle/big-lama/
+oracle/*.png
+*.safetensors
+.DS_Store
