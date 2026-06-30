@@ -22,9 +22,27 @@ public final class InpaintPackage: ModelPackage {
             license: LicenseDeclaration(weightLicense: .apache2, portCodeLicense: .mit),
             provenance: Provenance(sourceRepo: "mlx-community/LaMa-bf16", revision: "main", tier: 2),
             requirements: RequirementsManifest(
-                // Measured (M-Max): LaMa erase peak ~2.8 GB fp32 @880²; MI-GAN fixed 512² is lighter.
-                // Activation-dominated, both consumer-friendly → one fp16 envelope covers both modes.
-                footprints: [QuantFootprint(quant: .fp16, residentBytes: 4_500_000_000)],
+                // Split footprint (efficiency contract 1.14.0). The old flat 4.5 GB folded the FFC
+                // inpaint activation into the resident floor; split into weights + transient so the
+                // engine reserves one shared activation across co-residents.
+                //   Resident floor = the inpainter weights: LaMa-bf16 ~0.1 GB on disk + MI-GAN-fp16
+                //     ~15 MB (`load()` holds only LaMa; MI-GAN loads on the first `fast` request).
+                //     Both nets are tiny — even co-resident the weight floor is ≈ 0.5 GB.
+                //   activation ≈ 4.0 GB = the FFC inpaint transient that dominates the envelope
+                //     (measured end-to-end LaMa erase peak 2.8 GB fp32 @880²; the FFC spectral path's
+                //     activation grows with input area). The total envelope stays the proven ~4.5 GB.
+                // NOTE: dtype is bf16 in the load path (LaMa is fp16-FATAL); `.fp16` here is only the
+                //   engine quant-tier LABEL, not a load directive.
+                // [residentBytes = on-disk weight floor (solid). peakActivationBytes is a smoke/derived
+                //  est (old flat envelope − floor); a bare smoke MLX-peak under-reads process
+                //  phys_footprint ~2.7× (BiRefNet lesson). imageInpaint is a 2-input surface (image +
+                //  mask) — the image app's headless autorun can't read an arbitrary mask path (sandbox),
+                //  so the in-app phys re-baseline for LaMa is IN-GUI: FLAGGED, phys re-baseline pending.]
+                footprints: [
+                    QuantFootprint(
+                        quant: .fp16, residentBytes: 500_000_000,
+                        peakActivationBytes: 4_000_000_000)
+                ],
                 requiredBackends: [.metalGPU],
                 os: OSRequirement(minMacOS: SemanticVersion(major: 26, minor: 0, patch: 0))
             ),
@@ -44,7 +62,10 @@ public final class InpaintPackage: ModelPackage {
     public nonisolated init(configuration: Configuration) { self.configuration = configuration }
 
     public func load() async throws { if lama == nil { lama = try await buildLaMa() } }
-    public func unload() async { lama = nil; migan = nil }
+    public func unload() async {
+        lama = nil; migan = nil
+        MLX.Memory.clearCache()  // release the retained MLX pool so eviction frees RSS (not just drop refs)
+    }
 
     public func run(_ request: any CapabilityRequest) async throws -> any CapabilityResponse {
         guard request.capability == .imageInpaint, let req = request as? InpaintRequest else {

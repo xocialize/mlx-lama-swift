@@ -4,7 +4,7 @@ import MLXToolKit
 /// Configuration for the inpaint `imageInpaint` package. Two models back the two tier Modes —
 /// `InpaintContract.best` = LaMa (FFC, quality) · `.fast` = MI-GAN (mobile GAN). Weights resolve under
 /// the engine's model store (`modelsRootDirectory` + repo dir + `weightsFile`).
-public struct InpaintConfiguration: PackageConfiguration, ModelStorable {
+public struct InpaintConfiguration: PackageConfiguration, ModelStorable, QuantConfigured {
     public var lamaRepo: String
     public var miganRepo: String
     public var miganResolution: Int          // MI-GAN is fixed-resolution (512 default)
