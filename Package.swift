@@ -29,6 +29,8 @@ let package = Package(
         // A `revision:` pin can't be reconciled with the `from: "0.10.0"` version range the sibling
         // wrappers use, which jams a consuming app's graph (APP-VALIDATION BRIDGE-026).
         .package(url: "https://github.com/xocialize/mlx-engine-swift", from: "0.10.0"),
+        // Shared env-gated perf instrument (MLX_PROFILE=1); zero overhead when unset.
+        .package(url: "https://github.com/xocialize/mlx-profiling.git", from: "0.1.0"),
     ],
     targets: [
         .target(name: "LaMa", dependencies: mlxCore, path: "Sources/LaMa",
@@ -41,6 +43,7 @@ let package = Package(
                 "LaMa", "MIGAN",
                 .product(name: "MLX", package: "mlx-swift"),
                 .product(name: "MLXToolKit", package: "mlx-engine-swift"),
+                .product(name: "MLXProfiling", package: "mlx-profiling"),
                 .product(name: "Hub", package: "swift-transformers"),
             ],
             path: "Sources/MLXInpaint"),

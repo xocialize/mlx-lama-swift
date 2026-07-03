@@ -4,6 +4,7 @@ import ImageIO
 import UniformTypeIdentifiers
 import MLX
 import MLXToolKit
+import MLXProfiling
 import Hub
 import LaMa
 import MIGAN
@@ -74,14 +75,22 @@ public final class InpaintPackage: ModelPackage {
         try Task.checkCancellation()
         let image = try Self.decode(req.image)
         let mask = try Self.decode(req.mask)
+        // The single-image erase forward is profiled (MLX_PROFILE=1). Both cores self-eval their
+        // composite before CGImage materialization, so one coarse region times the whole lazy graph
+        // honestly (mask binarize + ×8 pad fold into that eval — no distinct heavy pre-stage).
+        // beginRun sits AFTER the lazy build so a first-request weight download can't skew the run.
+        let prof = MLXProfiler.shared
         let output: CGImage
         if req.mode == InpaintContract.fast {
             if migan == nil { migan = try await buildMIGAN() }
-            output = migan!(image, mask: mask)
+            prof.beginRun("migan imageInpaint fast \(image.width)x\(image.height)")
+            output = prof.region("inpaint", "forward", note: "migan") { migan!(image, mask: mask) }
         } else {
             if lama == nil { lama = try await buildLaMa() }
-            output = lama!(image, mask: mask)
+            prof.beginRun("lama imageInpaint best \(image.width)x\(image.height)")
+            output = prof.region("inpaint", "forward", note: "lama") { lama!(image, mask: mask) }
         }
+        prof.endRun(denominators: ["image": 1])
         try Task.checkCancellation()
         let png = try Self.encodePNG(output)
         return InpaintResponse(image: Image(format: .png, data: png, width: output.width, height: output.height))
