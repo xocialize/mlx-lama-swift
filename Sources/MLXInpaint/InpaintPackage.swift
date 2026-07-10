@@ -69,10 +69,14 @@ public final class InpaintPackage: ModelPackage {
     }
 
     public func run(_ request: any CapabilityRequest) async throws -> any CapabilityResponse {
+        // CAN-1: the entry checkpoint is the FIRST act of run() — before capability validation
+        // (engine ≥ 0.27.0). Mid-run: each tier is ONE monolithic MLX eval (single forward, no
+        // iterative loop); the real seams are pre-forward (after the lazy build / possible weight
+        // download) and post-forward/pre-encode — see CancellationTests for the cadence of record.
+        try Task.checkCancellation()
         guard request.capability == .imageInpaint, let req = request as? InpaintRequest else {
             throw InpaintError.unsupportedCapability(request.capability)
         }
-        try Task.checkCancellation()
         let image = try Self.decode(req.image)
         let mask = try Self.decode(req.mask)
         // The single-image erase forward is profiled (MLX_PROFILE=1). Both cores self-eval their
@@ -83,10 +87,14 @@ public final class InpaintPackage: ModelPackage {
         let output: CGImage
         if req.mode == InpaintContract.fast {
             if migan == nil { migan = try await buildMIGAN() }
+            // Pre-forward checkpoint: the lazy build above can include a first-request weight
+            // download; last seam before committing to the monolithic eval.
+            try Task.checkCancellation()
             prof.beginRun("migan imageInpaint fast \(image.width)x\(image.height)")
             output = prof.region("inpaint", "forward", note: "migan") { migan!(image, mask: mask) }
         } else {
             if lama == nil { lama = try await buildLaMa() }
+            try Task.checkCancellation()
             prof.beginRun("lama imageInpaint best \(image.width)x\(image.height)")
             output = prof.region("inpaint", "forward", note: "lama") { lama!(image, mask: mask) }
         }

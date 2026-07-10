@@ -25,10 +25,11 @@ let package = Package(
         .package(url: "https://github.com/ml-explore/mlx-swift.git", from: "0.31.3"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.0"),
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.1.6"),
-        // MLXToolKit contract (imageInpaint @ 1.8.0). Use the released tag — 0.10.0 supersets 1.8.0.
-        // A `revision:` pin can't be reconciled with the `from: "0.10.0"` version range the sibling
-        // wrappers use, which jams a consuming app's graph (APP-VALIDATION BRIDGE-026).
-        .package(url: "https://github.com/xocialize/mlx-engine-swift", from: "0.10.0"),
+        // MLXToolKit contract (imageInpaint @ 1.8.0); 0.27.0 = the CAN cancellation gate
+        // (MLXServeConformance CAN-1..3). Use the released tag — a `revision:` pin can't be
+        // reconciled with the version range the sibling wrappers use, which jams a consuming
+        // app's graph (APP-VALIDATION BRIDGE-026).
+        .package(url: "https://github.com/xocialize/mlx-engine-swift", from: "0.27.0"),
         // Shared env-gated perf instrument (MLX_PROFILE=1); zero overhead when unset.
         .package(url: "https://github.com/xocialize/mlx-profiling.git", from: "0.1.0"),
     ],
@@ -55,5 +56,13 @@ let package = Package(
             name: "MIGANSmoke",
             dependencies: ["MIGAN", .product(name: "ArgumentParser", package: "swift-argument-parser")],
             path: "Sources/MIGANSmoke", swiftSettings: [.swiftLanguageMode(.v5)]),
+        .testTarget(
+            name: "MLXInpaintTests",
+            dependencies: [
+                "MLXInpaint",
+                .product(name: "MLXToolKit", package: "mlx-engine-swift"),
+                .product(name: "MLXServeConformance", package: "mlx-engine-swift"),  // CAN gate
+            ],
+            path: "Tests/MLXInpaintTests"),
     ]
 )
