@@ -13,6 +13,12 @@ public final class LaMaInpainter: @unchecked Sendable {
     private let model: LaMaModel
     public init(weights: [String: MLXArray]) { self.model = LaMaModel(weights: weights) }
 
+    /// Route for the FFC convs inside mlx's lossy Winograd window (WinogradConvRoute.swift).
+    public var convRoute: LaMaConvRoute {
+        get { model.convRoute }
+        set { model.convRoute = newValue }
+    }
+
     public static func fromPretrained(_ weightsPath: String, dtype: DType = .float32) throws -> LaMaInpainter {
         let w = try MLX.loadArrays(url: URL(fileURLWithPath: weightsPath)).mapValues { $0.asType(dtype) }
         return LaMaInpainter(weights: w)

@@ -62,6 +62,9 @@ let package = Package(
                 "MLXInpaint",
                 .product(name: "MLXToolKit", package: "mlx-engine-swift"),
                 .product(name: "MLXServeConformance", package: "mlx-engine-swift"),  // CAN gate
+                // GPU-lane probe (GPULaneProbeTests, LANE_PROBE=1): drives the LaMa core directly.
+                "LaMa",
+                .product(name: "MLX", package: "mlx-swift"),
             ],
             path: "Tests/MLXInpaintTests"),
     ]

@@ -37,5 +37,32 @@ unauthenticated clients), which can look like a gating/auth error but is just a 
 Collection: <https://huggingface.co/collections/mlx-community/inpainting-mlx-6a3bfadea8702ef69898d2ee>.
 These are the defaults baked into `InpaintConfiguration` — consume that rather than hand-typing IDs.
 
+## GPU numerics: mlx's lossy Winograd conv2d window (2026-09-24)
+
+mlx's Metal `conv2d` takes a Winograd F(6×6,3×3) path when the conv is 3×3, stride 1, dilation 1,
+groups 1, C % 32 == 0, O % 32 == 0, C + O ≥ 256 and N·H·W ≥ 4096. On M5 that path loses about
+6.4e-3 relL2 per conv in fp32, because its inner GEMM runs TF32.
+
+Big-LaMa's 108 FFC convs fall inside it once (H/8)·(W/8) ≥ 4096, roughly 512² and up: convl2l
+128→128, convg2l 384→128 and convl2g 128→384, across 18 ResBlocks. The bf16 weights meet fp32
+activations, so they compute in fp32. `lama-smoke` parity ran on the CPU with fp32 weights, so the
+shipped GPU lane was never checked. MI-GAN (the fast tier) is unaffected: it is depthwise and 1×1.
+
+`LaMaModel` / `LaMaInpainter.convRoute` now route the in-window convs through conv3d with kT = 1.
+**Default `.conv3d`.**
+
+Measurements: GPU against the CPU lane, inside the hole.
+
+| | Raw conv2d (Winograd) | conv3d route |
+|---|---|---|
+| 1024×681 whole-object erase (~18% hole) | 3.4e-3 · **max 9 levels** · hole PSNR 53.1 dB | 1 level max |
+| 1024×680, elliptical hole (gate case) | 1.5e-3 · max 3 levels · 56.1 dB | 1.5e-6 · 1 level · 85.7 dB |
+| Forward time, 1024×680 | 162 ms | +8 ms |
+
+- Moving only the in-window convs to the CPU, or setting `MLX_ENABLE_TF32=0`, removes all of the
+  drift. The Winograd convs are the whole cause.
+- Environment override: `LAMA_CONV_ROUTE=winograd`.
+- Gate: `LAMA_LANE=1 swift test -c release -Xswiftc -enable-testing --filter LaMaGPULaneTests`.
+
 ## License
 Port code MIT. LaMa Apache-2.0; MI-GAN MIT. See NOTICE.

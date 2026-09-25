@@ -9,11 +9,13 @@ import MLX
 public final class LaMaModel: @unchecked Sendable {
 
     private let w: [String: MLXArray]
+    /// Route for the in-window FFC convs (WinogradConvRoute.swift). Default `.conv3d`.
+    public var convRoute: LaMaConvRoute = LaMaConvRoute.environmentOverride ?? .conv3d
     public init(weights: [String: MLXArray]) { self.w = weights }
 
     private func a(_ k: String) -> MLXArray { w[k]! }                 // weight (convs already NHWC)
     private func conv(_ x: MLXArray, _ k: String, b: String? = nil, stride: Int = 1, pad: Int = 0) -> MLXArray {
-        let y = MLX.conv2d(x, a(k), stride: .init(stride), padding: .init(pad))
+        let y = routedConv2d(x, a(k), stride: stride, padding: pad, route: convRoute)
         return b == nil ? y : y + a(b!)
     }
     private func bn(_ x: MLXArray, _ p: String) -> MLXArray {
