@@ -32,9 +32,10 @@ let package = Package(
         .package(url: "https://github.com/xocialize/mlx-engine-swift", from: "0.27.0"),
         // Shared env-gated perf instrument (MLX_PROFILE=1); zero overhead when unset.
         .package(url: "https://github.com/xocialize/mlx-profiling.git", from: "0.1.0"),
+        .package(url: "https://github.com/xocialize/mlx-exact-conv-swift", from: "0.1.0"),
     ],
     targets: [
-        .target(name: "LaMa", dependencies: mlxCore, path: "Sources/LaMa",
+        .target(name: "LaMa", dependencies: mlxCore + [.product(name: "MLXExactConv", package: "mlx-exact-conv-swift")], path: "Sources/LaMa",
                 swiftSettings: [.swiftLanguageMode(.v5)]),
         .target(name: "MIGAN", dependencies: mlxCore, path: "Sources/MIGAN",
                 swiftSettings: [.swiftLanguageMode(.v5)]),
