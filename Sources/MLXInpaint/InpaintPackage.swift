@@ -21,19 +21,19 @@ public final class InpaintPackage: ModelPackage {
             // LaMa Apache-2.0 + MI-GAN MIT (both permissive); port code MIT. Declare the more-restrictive
             // permissive layer (Apache) for the weight gate — both pass C7. (NOTICE records both.)
             license: LicenseDeclaration(weightLicense: .apache2, portCodeLicense: .mit),
-            provenance: Provenance(sourceRepo: "mlx-community/LaMa-bf16", revision: "main", tier: 2),
+            provenance: Provenance(sourceRepo: "mlx-community/LaMa-fp32", revision: "main", tier: 2),
             requirements: RequirementsManifest(
                 // Split footprint (efficiency contract 1.14.0). The old flat 4.5 GB folded the FFC
                 // inpaint activation into the resident floor; split into weights + transient so the
                 // engine reserves one shared activation across co-residents.
-                //   Resident floor = the inpainter weights: LaMa-bf16 ~0.1 GB on disk + MI-GAN-fp16
+                //   Resident floor = the inpainter weights: LaMa-fp32 ~0.2 GB on disk + MI-GAN-fp16
                 //     ~15 MB (`load()` holds only LaMa; MI-GAN loads on the first `fast` request).
                 //     Both nets are tiny — even co-resident the weight floor is ≈ 0.5 GB.
                 //   activation ≈ 4.0 GB = the FFC inpaint transient that dominates the envelope
                 //     (measured end-to-end LaMa erase peak 2.8 GB fp32 @880²; the FFC spectral path's
                 //     activation grows with input area). The total envelope stays the proven ~4.5 GB.
-                // NOTE: dtype is bf16 in the load path (LaMa is fp16-FATAL); `.fp16` here is only the
-                //   engine quant-tier LABEL, not a load directive.
+                // NOTE: LaMa loads fp32 (bf16 weights cast large colour fills, fp16 collapses the FFC);
+                //   `.fp16` here is only the engine quant-tier LABEL, not a load directive.
                 // [residentBytes = on-disk weight floor (solid). peakActivationBytes is a smoke/derived
                 //  est (old flat envelope − floor); a bare smoke MLX-peak under-reads process
                 //  phys_footprint ~2.7× (BiRefNet lesson). imageInpaint is a 2-input surface (image +
@@ -108,8 +108,10 @@ public final class InpaintPackage: ModelPackage {
 
     private func buildLaMa() async throws -> LaMaInpainter {
         let url = try await weightsURL(configuration.lamaWeightsURL, configuration.lamaRepo)
-        // LaMa MUST run at bf16+ — its FFC bottleneck activations (~1e3) collapse under fp16 (mean err 0.55).
-        return try LaMaInpainter.fromPretrained(url.path, dtype: .bfloat16)
+        // LaMa MUST load fp32. bf16 weight rounding compounds through the 18 FFC blocks and casts large
+        // colour fills pink (AB-T-0213: max_abs 7.5e-2 vs PyTorch on the colour gate, fp32 5e-6); fp16
+        // collapses the FFC outright (mean err 0.55).
+        return try LaMaInpainter.fromPretrained(url.path, dtype: .float32)
     }
     private func buildMIGAN() async throws -> MIGANInpainter {
         let url = try await weightsURL(configuration.miganWeightsURL, configuration.miganRepo)

@@ -1,5 +1,5 @@
 // GPU-lane gate for mlx's lossy Winograd conv2d window in Big-LaMa (Sources/LaMa/
-// WinogradConvRoute.swift): the production-dtype forward (bf16 weights × fp32 activations) on a
+// WinogradConvRoute.swift): the production-dtype forward (fp32 weights × fp32 activations) on a
 // real photo with a fixed hole, on the CPU stream (exact-class reference) and on the GPU with the
 // conv route on (default) and off (raw Winograd). lama-smoke parity runs on the CPU with fp32
 // weights, so the shipped GPU lane was never checked numerically.
@@ -23,10 +23,10 @@ final class LaMaGPULaneTests: XCTestCase {
         let env = ProcessInfo.processInfo.environment
         try XCTSkipUnless(env["LAMA_LANE"] == "1", "set LAMA_LANE=1 to run")
         let weights = env["LAMA_WEIGHTS"]
-            ?? "/Volumes/Satechi/Models/models/mlx-community/LaMa-bf16/model.safetensors"
+            ?? "/Volumes/Satechi/Models/models/mlx-community/LaMa-fp32/model.safetensors"
         let image = URL(fileURLWithPath: env["LAMA_REAL_IMAGE"]
             ?? "/Volumes/Satechi/Development/mlxengine-image/corpus/sr-bench/DIV2K_valid_HR/0801.png")
-        let w = try MLX.loadArrays(url: URL(fileURLWithPath: weights)).mapValues { $0.asType(.bfloat16) }
+        let w = try MLX.loadArrays(url: URL(fileURLWithPath: weights)).mapValues { $0.asType(.float32) }
         let model = LaMaModel(weights: w)
 
         // Center crop 1024×680 (a multiple of 8, as production pads to), [0,1] RGB.
@@ -87,7 +87,7 @@ final class LaMaGPULaneTests: XCTestCase {
         }
         func med(_ v: [Double]) -> Double { v.sorted()[v.count / 2] }
         let sR = holeStats(out[.conv3d]!), sW = holeStats(out[.winograd]!)
-        print("[\(image.lastPathComponent) 1024×680, ~18% hole, bf16 weights × fp32, GPU vs CPU lane]")
+        print("[\(image.lastPathComponent) 1024×680, ~18% hole, fp32 weights × fp32, GPU vs CPU lane]")
         print(String(format: "  conv3d route   %@  %6.1f ms", sR.text, med(t[.conv3d]!)))
         print(String(format: "  raw Winograd   %@  %6.1f ms", sW.text, med(t[.winograd]!)))
         XCTAssertLessThan(sR.rel, 1e-4, "conv3d route vs CPU lane")

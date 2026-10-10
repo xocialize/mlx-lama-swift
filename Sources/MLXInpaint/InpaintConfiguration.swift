@@ -14,7 +14,7 @@ public struct InpaintConfiguration: PackageConfiguration, ModelStorable, QuantCo
     public var lamaWeightsURL: URL?
     public var miganWeightsURL: URL?
 
-    public init(lamaRepo: String = "mlx-community/LaMa-bf16",   // bf16: LaMa's FFC breaks at fp16
+    public init(lamaRepo: String = "mlx-community/LaMa-fp32",   // fp32: bf16 casts fills, fp16 collapses
                 miganRepo: String = "mlx-community/MI-GAN-512-places2-fp16",
                 miganResolution: Int = 512,
                 weightsFile: String = "model.safetensors",

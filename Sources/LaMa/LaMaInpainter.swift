@@ -19,6 +19,9 @@ public final class LaMaInpainter: @unchecked Sendable {
         set { model.convRoute = newValue }
     }
 
+    /// Load fp32 weights and keep them fp32. LaMa doesn't survive reduced-precision weights: bf16 casts
+    /// large colour fills pink and fp16 collapses the FFC (AB-T-0213). Casting bf16 weights up to fp32
+    /// does not help, because the precision is already gone from the file.
     public static func fromPretrained(_ weightsPath: String, dtype: DType = .float32) throws -> LaMaInpainter {
         let w = try MLX.loadArrays(url: URL(fileURLWithPath: weightsPath)).mapValues { $0.asType(dtype) }
         return LaMaInpainter(weights: w)

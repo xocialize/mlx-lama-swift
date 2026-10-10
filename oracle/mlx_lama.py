@@ -3,26 +3,18 @@
 Validates the whole graph before Swift transcription. Reuses the validated FourierUnit logic.
 """
 import os
-import sys
-import types
 import numpy as np
 import torch
 import mlx.core as mx
+
+from ckpt import generator_state_dict
 
 mx.set_default_device(mx.cpu)
 HERE = os.path.dirname(__file__)
 
 
 def load_weights():
-    for n in ["pytorch_lightning", "pytorch_lightning.callbacks", "pytorch_lightning.callbacks.model_checkpoint"]:
-        m = types.ModuleType(n); sys.modules[n] = m
-        class D:
-            def __init__(s, *a, **k): pass
-            def __setstate__(s, st): pass
-        m.ModelCheckpoint = D; m.Callback = D
-    ck = torch.load(f"{HERE}/big-lama/models/best.ckpt", map_location="cpu", weights_only=False)
-    return {k[len("generator."):]: v.float().numpy()
-            for k, v in ck["state_dict"].items() if k.startswith("generator.")}
+    return {k: v.float().numpy() for k, v in generator_state_dict(f"{HERE}/big-lama/models/best.ckpt").items()}
 
 
 W = load_weights()

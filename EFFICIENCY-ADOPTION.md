@@ -13,9 +13,12 @@
 - `unload()` is `lama = nil; migan = nil` — **no `MLX.Memory.clearCache()`**.
 
 ## ⚠️ Critical — do NOT "fix" the dtype
-**LaMa is fp16-FATAL** (NaN/black output in fp16) and deliberately **ships/runs bf16**. The
+**LaMa is fp16-FATAL** (NaN/black output in fp16), and **bf16 casts large colour fills pink**
+(AB-T-0213, 2026-10-09). Since 0.3.1 it **ships and runs fp32** (`mlx-community/LaMa-fp32`). The
 `QuantFootprint(quant: .fp16, …)` is the engine **quant-tier label**, not a directive to load fp16. Do not
-change the dtype/load path to fp16 — verify it stays bf16. (This is the package's hardest-won lesson.)
+change the dtype/load path — verify it stays fp32. (This is the package's hardest-won lesson.)
+
+> The rest of this brief predates 0.3.1. Read its "bf16" as "the LaMa load dtype", which is now fp32.
 
 ## Audit vs. the four levers
 | Lever | State | Finding | Priority |

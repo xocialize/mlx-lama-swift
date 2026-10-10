@@ -13,7 +13,9 @@ architecture ports (no MLX donors). See ERASE-PLAN.md (Forge side).
 | Full MLX-Python parity | `oracle/mlx_lama.py` — predicted vs PyTorch golden **3.17e-5** (CPU fp32) ✅ |
 | Weight conversion | `oracle/convert.py` — NHWC conv transpose, ConvTranspose (I,O)→(O,..,I), drop num_batches; flat keys |
 | Swift core | `Sources/LaMa/` — `LaMaModel`/`LaMaOps`/`LaMaImage`/`LaMaInpainter`; reflect-pad via gather, ortho FFT via backward×√N |
-| **Swift parity gate** | `lama-smoke`: predicted **max_abs 3.17e-5** (mean 2.3e-7) vs golden (CPU fp32) ✅ |
+| **Swift parity gate** | `lama-smoke`: predicted **max_abs 3.17e-5** (mean 2.3e-7) vs golden (CPU fp32) ✅ — but on a greyscale fixture |
+| **Colour parity gate** (AB-T-0213, 2026-10-09) | `oracle/run_oracle.py` procedural colour scene, 29% hole: fp32 weights **5.0e-6** ✅ · the published bf16 weights **7.5e-2** ❌ (pink fills). LaMa now ships and loads fp32 |
+| **Upstream anchor** | `oracle/check_upstream.py`: the trimmed oracle vs the original advimman/lama output (Carve/LaMa-ONNX `output_orig.png`): hole max 1 level ✅ |
 | **End-to-end erase** | `lama-smoke --erase-image` → real object removal validated visually (clean fill, ~0.5s @880², peak 2.8 GB) ✅ |
 
 ## ✅ DONE & VERIFIED — MI-GAN (fast / on-device tier)
@@ -31,7 +33,7 @@ architecture ports (no MLX donors). See ERASE-PLAN.md (Forge side).
 |---|---|
 | **imageInpaint contract** | MLXToolKit 1.8.0 (`8cd0033`): `Capability.imageInpaint` + `Inpaint.swift` (Request **image+mask** / Response / Contract; best/fast modes) — the contract's first two-input surface |
 | **MLXInpaint ModelPackage** | `Sources/MLXInpaint/` — one package, `best`→LaMa / `fast`→MI-GAN; Apache/MIT gate; fp16 4.5 GB footprint; builds against pinned contract ✅ |
-| **Published weights** | `mlx-community/{LaMa-bf16, MI-GAN-512-places2-fp16, MI-GAN-256-places2-fp16, MI-GAN-256-ffhq-fp16}` + "Inpainting (MLX)" Collection ✅ |
+| **Published weights** | `mlx-community/{LaMa-fp32, MI-GAN-512-places2-fp16, MI-GAN-256-places2-fp16, MI-GAN-256-ffhq-fp16}` + "Inpainting (MLX)" Collection ✅ — `LaMa-bf16` (≤ 0.3.0) is superseded: it casts colour fills pink |
 | **Published code** | `github.com/xocialize/mlx-lama-swift` (see tag) ✅ |
 
 ## ▢ REMAINING → Forge agent

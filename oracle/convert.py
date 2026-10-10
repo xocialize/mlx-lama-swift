@@ -1,18 +1,22 @@
-"""Big-LaMa PyTorch generator → canonical MLX safetensors (NHWC). Plus the Swift parity fixture.
+"""Big-LaMa PyTorch generator → canonical MLX safetensors (NHWC).
 
 Conv weights (O,I,kH,kW) → (O,kH,kW,I); ConvTranspose (I,O,kH,kW) → (O,kH,kW,I); drop
 num_batches_tracked; keep BN params. Flat torch keys (Swift WeightLoading maps them).
 
-    python convert.py --dtype float32 --out weights/lama_fp32.safetensors   # parity
-    python convert.py --dtype float16 --out publish/model.safetensors        # publish
+    python convert.py --dtype float32 --out weights/lama_fp32.safetensors           # parity
+    python convert.py --dtype float32 --out publish/lama-fp32/model.safetensors     # publish
+
+Publish fp32 only. fp16 collapses the FFC, and bf16 casts large colour fills pink: its weight
+rounding compounds through the 18 FFC blocks (AB-T-0213). The parity fixture comes from
+run_oracle.py.
 """
 import argparse
 import os
-import sys
-import types
 import numpy as np
 import torch
 import mlx.core as mx
+
+from ckpt import generator_state_dict
 
 HERE = os.path.dirname(__file__)
 
@@ -20,15 +24,7 @@ CONV_T = {"model.24.weight", "model.27.weight", "model.30.weight"}  # ConvTransp
 
 
 def load_gen_sd():
-    for n in ["pytorch_lightning", "pytorch_lightning.callbacks", "pytorch_lightning.callbacks.model_checkpoint"]:
-        m = types.ModuleType(n); sys.modules[n] = m
-        class D:
-            def __init__(s, *a, **k): pass
-            def __setstate__(s, st): pass
-        m.ModelCheckpoint = D; m.Callback = D
-    ck = torch.load(f"{HERE}/big-lama/models/best.ckpt", map_location="cpu", weights_only=False)
-    return {k[len("generator."):]: v.float().numpy()
-            for k, v in ck["state_dict"].items() if k.startswith("generator.")}
+    return {k: v.float().numpy() for k, v in generator_state_dict(f"{HERE}/big-lama/models/best.ckpt").items()}
 
 
 def main():

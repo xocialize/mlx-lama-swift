@@ -10,7 +10,7 @@
 //
 // Big-LaMa hits the window in all 108 FFC convs of its 18 ResBlocks (convl2l 128→128, convg2l
 // 384→128, convl2g 128→384 at H/8, reflect-padded) once (H/8)·(W/8) ≥ 4096 — ≈512² and up. The
-// bf16 weights meet fp32 activations, so they compute in fp32. Measured GPU vs CPU (1024×681,
+// weights and activations are fp32 (AB-T-0213). Measured GPU vs CPU (1024×681,
 // ~18% hole): 8-bit max 9 levels, hole PSNR 53 dB — Winograd is the whole drift. Default `.conv3d`.
 // `LAMA_CONV_ROUTE=winograd` restores raw conv2d (validation). Removal: when a new mlx-swift pin
 // reports raw conv2d exact (LaMaGPULaneTests probe), drop the route.
