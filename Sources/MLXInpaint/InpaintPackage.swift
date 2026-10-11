@@ -119,10 +119,16 @@ public final class InpaintPackage: ModelPackage {
         return try MIGANInpainter.fromPretrained(url.path, resolution: configuration.miganResolution, dtype: .float16)
     }
 
+    /// The weights file: an explicit URL, else where the engine materialized it (`StoreWeights`). Downloading here is
+    /// only a backstop for a caller outside the engine (no store, or the engine didn't run): it lands in the
+    /// `HubApi` layout, which `missingWeightSources` also accepts.
     private func weightsURL(_ override: URL?, _ repo: String) async throws -> URL {
         if let override {
             guard FileManager.default.fileExists(atPath: override.path) else { throw InpaintError.weightsMissing(override) }
             return override
+        }
+        if let stored = StoreWeights.file(configuration.weightsFile, repo: repo, root: configuration.modelsRootDirectory) {
+            return stored
         }
         let hub = HubApi(downloadBase: configuration.modelsRootDirectory)
         let dir = try await hub.snapshot(from: repo, matching: ["*.safetensors"]) { @Sendable p in

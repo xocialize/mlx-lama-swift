@@ -38,6 +38,13 @@ unauthenticated clients), which can look like a gating/auth error but is just a 
 Collection: <https://huggingface.co/collections/mlx-community/inpainting-mlx-6a3bfadea8702ef69898d2ee>.
 These are the defaults baked into `InpaintConfiguration` — consume that rather than hand-typing IDs.
 
+**Engine-materialized since 0.4.0 (AB-T-0222).** `InpaintConfiguration` declares both tiers' repos as
+`weightSources` (roles `lama`, `migan`), so MLXEngine sizes, previews and downloads them into its model store before
+`load()`, with byte progress and resume. `load()` reads the store's flat or snapshot layout, and also
+`<root>/models/<org>/<name>/`, where 0.3.x downloaded through swift-transformers' `HubApi`, so existing installs
+aren't fetched again. Outside the engine (no store, or nothing materialized), `load()` still downloads through
+`HubApi` as before. Explicit `lamaWeightsURL` / `miganWeightsURL` bypass all of it.
+
 ## LaMa precision: fp32 only (2026-10-09)
 
 Through 0.3.0 LaMa shipped as `mlx-community/LaMa-bf16` and loaded bf16. It filled large holes in
